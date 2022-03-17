@@ -40,7 +40,6 @@ public class GamePanel extends JPanel implements Runnable{
         focusedTextbox = grid[0][0];
         focusedTextbox.requestFocus();
         backspace = KeyStroke.getKeyStroke((char) KeyEvent.VK_BACK_SPACE);
-        System.out.println("new commit");
     }
 
     public void startThread() {
