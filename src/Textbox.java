@@ -5,9 +5,9 @@ import java.awt.*;
 
 public class Textbox extends JTextPane{
     Font font;
-    public Textbox(int x, int y) {
+    public Textbox(int y) {
         font = new Font(Font.MONOSPACED, Font.PLAIN,50);
-        setBounds(x*100+5,y*100+5,90,90);
+        setBounds(10,y*100+10,500,90);
         setFont(font);
     }
 }

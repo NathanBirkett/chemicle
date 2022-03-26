@@ -1,19 +1,25 @@
 import javax.swing.*;
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Highlighter;
 import java.awt.*;
-import java.awt.event.InputEvent;
+import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
-import java.security.Key;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Objects;
 
 public class GamePanel extends JPanel implements Runnable{
     Thread thread;
-    Textbox[][] grid;
+    public Textbox[] grid;
     String word;
     Textbox focusedTextbox;
     int focusedX, focusedY, chemicalLength;
     ChemicalMaps cm;
-    KeyStroke backspace;
+    KeyStroke enter;
+    char[] charArray;
 
     public GamePanel() {
         this.setFocusable(true);
@@ -29,17 +35,15 @@ public class GamePanel extends JPanel implements Runnable{
             }
         }
         System.out.println(chemicalLength);
-        setPreferredSize(new Dimension(chemicalLength*100,600));
-        grid = new Textbox[chemicalLength][6];
-        for(int x=0; x<chemicalLength; x++) {
+        setPreferredSize(new Dimension(520,600));
+        grid = new Textbox[6];
             for (int y=0; y<6; y++) {
-                grid[x][y] = new Textbox(x,y);
-                add(grid[x][y]);
+                grid[y] = new Textbox(y);
+                add(grid[y]);
             }
-        }
-        focusedTextbox = grid[0][0];
+        focusedTextbox = grid[0];
         focusedTextbox.requestFocus();
-        backspace = KeyStroke.getKeyStroke((char) KeyEvent.VK_BACK_SPACE);
+        enter = KeyStroke.getKeyStroke((char) KeyEvent.VK_ENTER);
     }
 
     public void startThread() {
@@ -47,79 +51,57 @@ public class GamePanel extends JPanel implements Runnable{
         thread.start();
     }
 
-    public void generateChemical() {
-
-    }
-
     public void testLine(int line) {
-        int pos = 0;
-        if (Objects.equals(grid[pos][line].getText(), cm.cation)) {
-            grid[pos][line].setBackground(Color.GREEN);
-        } else {
-            grid[pos][line].setBackground(Color.LIGHT_GRAY);
-        }
-        pos++;
-        if (isNumber(grid[pos][line].getText())) {
-            if (Integer.parseInt(grid[pos][line].getText()) == -cm.anionCharge) {
-                grid[pos][line].setBackground(Color.GREEN);
-            } else {
-                grid[pos][line].setBackground(Color.LIGHT_GRAY);
-            }
-            pos++;
-        }
-        if (Objects.equals(grid[pos][line].getText(), cm.anion)) {
-            grid[pos][line].setBackground(Color.GREEN);
-        } else {
-            grid[pos][line].setBackground(Color.LIGHT_GRAY);
-        }
-        pos++;
-        if (pos != grid.length && isNumber(grid[pos][line].getText())) {
-            if (Integer.parseInt(grid[pos][line].getText()) == cm.cationCharge) {
-                grid[pos][line].setBackground(Color.GREEN);
-            } else {
-                grid[pos][line].setBackground(Color.LIGHT_GRAY);
-            }
-        }
-    }
+        ArrayList<String> wOutParenthesis = new ArrayList<>();
+        ArrayList<String> removeNewLine = new ArrayList<>();
+        ArrayList<String> splitNumbers = new ArrayList<>();
+        ArrayList<String> splitCapitals = new ArrayList<>();
 
-    public Object detectKey() {
-        System.out.println("detecting");
-        for (int x=0; x<5; x++) {
-            for (int y=0; y<6; y++) {
-                if (grid[x][y].hasFocus()) {
-                    grid[x+1][y].requestFocus();
+        Collections.addAll(wOutParenthesis, focusedTextbox.getText().split("[[(]||[)]]"));
+        System.out.println(wOutParenthesis);
+        for (String token : wOutParenthesis) {
+            removeNewLine.add(token.replace("\n","").replace("\r",""));
+        }
+        System.out.println(removeNewLine);
+        for (String token : removeNewLine) {
+            splitNumbers.addAll(Arrays.asList(token.split("(?=[0-9])")));
+        }
+        System.out.println(splitNumbers);
+        for (String token : splitNumbers) {
+            splitCapitals.addAll(Arrays.asList(token.split("(?=[A-Z])")));
+        }
+        System.out.println(splitCapitals);
+        splitCapitals.removeIf(token -> Objects.equals(token, ""));
+        System.out.println(splitCapitals);
+        boolean isCorrect = true;
+        Highlighter highlighter = focusedTextbox.getHighlighter();
+        Highlighter.HighlightPainter greenHighlight = new DefaultHighlighter.DefaultHighlightPainter(Color.GREEN);
+        Highlighter.HighlightPainter yellowHighlight = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
+        Highlighter.HighlightPainter grayHighlight = new DefaultHighlighter.DefaultHighlightPainter(Color.GRAY);
+        for (int i=0; i<splitCapitals.size(); i++) {
+            System.out.println(splitCapitals.get(i));
+            if (Objects.equals(splitCapitals.get(i), cm.chemicalTokens.get(i))) {
+                try {
+                    highlighter.addHighlight(focusedTextbox.getText().indexOf(splitCapitals.get(i)),
+                            focusedTextbox.getText().indexOf(splitCapitals.get(i))+splitCapitals.get(i).length(),
+                            greenHighlight);
+                } catch (BadLocationException e) {
+                    e.printStackTrace();
                 }
             }
         }
-        return null;
     }
 
     @Override
     public void run() {
         while(thread != null) {
-            for (int x=0; x<chemicalLength; x++) {
-                for (int y=0; y<6; y++) {
-                    if (grid[x][y].isFocusOwner()) {
-                        focusedTextbox = grid[x][y];
-                    }
+            for (Textbox textbox : grid) {
+                if (textbox.isFocusOwner()) {
+                    focusedTextbox = textbox;
                 }
             }
-            focusedX = focusedTextbox.getX()/100;
             focusedY = focusedTextbox.getY()/100;
-            if (focusedTextbox != null) {
-                if (cm.cationMap.containsKey(focusedTextbox.getText()) || cm.anionMap.containsKey(focusedTextbox.getText()) || isNumber(focusedTextbox.getText())) {
-                    if (focusedX < chemicalLength-1) {
-                        grid[focusedX+1][focusedY].requestFocus();
-                    } else {
-                        testLine(focusedY);
-                        grid[0][focusedY+1].requestFocus();
-                    }
-                }
-            }
-            focusedTextbox.getKeymap().addActionForKeyStroke(backspace, new NextBoxAction());
-            if (focusedTextbox.getText().contains("2")) {
-                focusedTextbox.setText(focusedTextbox.getText().replace("2","\u2082"));
-            }
+            focusedTextbox.getKeymap().addActionForKeyStroke(enter, new NextBoxAction());
         }
     }
 
@@ -130,5 +112,17 @@ public class GamePanel extends JPanel implements Runnable{
             return false;
         }
         return true;
+    }
+
+    private class NextBoxAction extends AbstractAction {
+        public NextBoxAction() {
+
+        }
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            System.out.println("action performed");
+            grid[focusedY+1].requestFocus();
+            testLine(focusedY);
+        }
     }
 }
