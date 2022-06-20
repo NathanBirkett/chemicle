@@ -52,42 +52,49 @@ public class GamePanel extends JPanel implements Runnable{
     }
 
     public void testLine(int line) {
-        ArrayList<String> wOutParenthesis = new ArrayList<>();
-        ArrayList<String> removeNewLine = new ArrayList<>();
-        ArrayList<String> splitNumbers = new ArrayList<>();
-        ArrayList<String> splitCapitals = new ArrayList<>();
-
-        Collections.addAll(wOutParenthesis, focusedTextbox.getText().split("[[(]||[)]]"));
-        System.out.println(wOutParenthesis);
-        for (String token : wOutParenthesis) {
-            removeNewLine.add(token.replace("\n","").replace("\r",""));
+        ArrayList<String> entryTokens = new ArrayList<>();
+        String chemical = focusedTextbox.getText();
+        for (int i=0; i<chemical.length(); i++) {
+            char chr = chemical.charAt(i);
+            if (chr == '(') {
+                entryTokens.add(chemical.substring(i+1, chemical.indexOf(')', i)));
+                System.out.println(entryTokens);
+                i = chemical.indexOf(')', i)-1;
+                continue;
+            } else if (Character.isLowerCase(chr)) {
+                entryTokens.add(""+chemical.charAt(i-1)+chr);
+                System.out.println(entryTokens);
+            } else if (Character.isDigit(chr)) {
+                if (Character.isUpperCase(chemical.charAt(i-1))) {
+                    entryTokens.add(""+chemical.charAt(i-1));
+                    System.out.println(entryTokens);
+                }
+                entryTokens.add(""+chr);
+                System.out.println(entryTokens);
+            }
         }
-        System.out.println(removeNewLine);
-        for (String token : removeNewLine) {
-            splitNumbers.addAll(Arrays.asList(token.split("(?=[0-9])")));
-        }
-        System.out.println(splitNumbers);
-        for (String token : splitNumbers) {
-            splitCapitals.addAll(Arrays.asList(token.split("(?=[A-Z])")));
-        }
-        System.out.println(splitCapitals);
-        splitCapitals.removeIf(token -> Objects.equals(token, ""));
-        System.out.println(splitCapitals);
+        System.out.println(entryTokens);
         boolean isCorrect = true;
         Highlighter highlighter = focusedTextbox.getHighlighter();
         Highlighter.HighlightPainter greenHighlight = new DefaultHighlighter.DefaultHighlightPainter(Color.GREEN);
         Highlighter.HighlightPainter yellowHighlight = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
         Highlighter.HighlightPainter grayHighlight = new DefaultHighlighter.DefaultHighlightPainter(Color.GRAY);
-        for (int i=0; i<splitCapitals.size(); i++) {
-            System.out.println(splitCapitals.get(i));
-            if (Objects.equals(splitCapitals.get(i), cm.chemicalTokens.get(i))) {
-                try {
-                    highlighter.addHighlight(focusedTextbox.getText().indexOf(splitCapitals.get(i)),
-                            focusedTextbox.getText().indexOf(splitCapitals.get(i))+splitCapitals.get(i).length(),
-                            greenHighlight);
-                } catch (BadLocationException e) {
-                    e.printStackTrace();
+        System.out.println(cm.chemicalTokens);
+        for (int i=0; i<entryTokens.size(); i++) {
+            try {
+                System.out.println(entryTokens.get(i));
+                System.out.println(cm.chemicalTokens.get(i));
+                if (Objects.equals(entryTokens.get(i), cm.chemicalTokens.get(i))) {
+                    try {
+                        highlighter.addHighlight(focusedTextbox.getText().indexOf(entryTokens.get(i)),
+                                focusedTextbox.getText().indexOf(entryTokens.get(i))+entryTokens.get(i).length(),
+                                greenHighlight);
+                    } catch (BadLocationException e) {
+                        e.printStackTrace();
+                    }
                 }
+            } catch (IndexOutOfBoundsException e) {
+                System.out.println("out of bounds");
             }
         }
     }
