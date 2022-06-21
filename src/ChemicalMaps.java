@@ -1,4 +1,5 @@
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 public class ChemicalMaps {
     HashMap<Integer, String[]> ionMap;
@@ -144,27 +145,7 @@ public class ChemicalMaps {
         chemical = (cation+anionCharge*-1+anion+cationCharge).replace("1","");
         chemical = (cationCharge == -anionCharge) ? chemical.replace(String.valueOf(cationCharge),"") : chemical;
         System.out.println(chemical);
-
-        for (int i=0; i<chemical.length(); i++) {
-            char chr = chemical.charAt(i);
-            if (chr == '(') {
-                chemicalTokens.add(chemical.substring(i+1, chemical.indexOf(')', i)));
-                System.out.println(chemicalTokens);
-                i = chemical.indexOf(')', i)-1;
-                continue;
-            } else if (Character.isLowerCase(chr)) {
-                chemicalTokens.add(""+chemical.charAt(i-1)+chr);
-                System.out.println(chemicalTokens);
-            } else if (Character.isDigit(chr)) {
-                if (Character.isUpperCase(chemical.charAt(i-1))) {
-                    chemicalTokens.add(""+chemical.charAt(i-1));
-                    System.out.println(chemicalTokens);
-                }
-                chemicalTokens.add(""+chr);
-                System.out.println(chemicalTokens);
-            }
-        }
-        System.out.println(chemicalTokens);
+        chemicalTokens = dissect(chemical);
         return chemical;
     }
 
@@ -180,5 +161,86 @@ public class ChemicalMaps {
         anion = anionKeys.get((int)(Math.random()*(anionMap.size())));
         anionCharge = anionMap.get(anion);
         return anion;
+    }
+
+    public ArrayList<String> dissect(String str) {
+        ArrayList<String> tokens = new ArrayList<>();
+        String chemical = str;
+        for (int i=0; i<chemical.length(); i++) {
+            char chr = chemical.charAt(i); 
+            if (chr == '(') {
+                if (i != 0 && Character.isUpperCase(chemical.charAt(i-1))) {
+                    tokens.add(""+chemical.charAt(i-1));
+                    System.out.println(tokens);
+                }
+                if (i != 0 && !Character.isDigit(chemical.charAt(i-1))) {
+                    tokens.add("1");
+                    System.out.println(tokens);
+                }
+                tokens.add(chemical.substring(i+1, chemical.indexOf(')', i)));
+                System.out.println(tokens);
+                i = chemical.indexOf(')', i)-1;
+            } 
+            if (i != 0 && Character.isUpperCase(chr) && !Character.isDigit(chemical.charAt(i-1))) {
+                tokens.add("1");
+                System.out.println(tokens);
+            }
+            if (Character.isLowerCase(chr)) {
+                tokens.add(""+chemical.charAt(i-1)+chr);
+                System.out.println(tokens);
+            } else if (Character.isDigit(chr)) {
+                if (Character.isUpperCase(chemical.charAt(i-1))) {
+                    tokens.add(""+chemical.charAt(i-1));
+                    System.out.println(tokens);
+                }
+                tokens.add(""+chr);
+                System.out.println(tokens);
+            }
+        }
+        if (Character.isUpperCase(chemical.charAt(chemical.length()-1))) {
+            tokens.add(""+chemical.charAt(chemical.length()-1));
+            System.out.println(tokens);
+        }
+        if (!Character.isDigit(chemical.charAt(chemical.length()-1))) {
+            tokens.add("1");
+            System.out.println(tokens);
+        }
+        System.out.println(tokens);
+        return tokens;
+    }
+
+    public boolean isValid(ArrayList<String> tokens) {
+        ArrayList<String> editedTokens = new ArrayList<>();
+        for (int i=0; i<tokens.size(); i++) {
+            int upperCase = 0;
+            int number = 0;
+            if (tokens.get(i).length() > 1) {
+                for (int k=0; k<tokens.get(i).length(); k++) {
+                    if (Character.isUpperCase(tokens.get(i).charAt(k))) upperCase++;
+                    if (Character.isDigit(tokens.get(i).charAt(k)) && Character.getNumericValue(tokens.get(i).charAt(k)) > number) number = Character.getNumericValue(tokens.get(i).charAt(k));
+                }
+            }
+            if (upperCase >= 2 || number >= 2) {
+                editedTokens.add("("+tokens.get(i)+")");
+            } else {
+                editedTokens.add(tokens.get(i));
+            }
+        }
+        System.out.println(editedTokens);
+        try {
+            System.out.println(cationMap.get(editedTokens.get(0)));
+            if (cationMap.get(editedTokens.get(0)) 
+            * Integer.parseInt(editedTokens.get(1)) 
+            == -1 * anionMap.get(editedTokens.get(2)) 
+            * Integer.parseInt(editedTokens.get(3))) {
+                return true;
+            } else {
+                return false;
+            }
+
+        } catch (Exception e) {
+            System.out.println("INVALID ANSWER");
+            return false;
+        }
     }
 }

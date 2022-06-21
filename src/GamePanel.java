@@ -20,6 +20,8 @@ public class GamePanel extends JPanel implements Runnable{
     ChemicalMaps cm;
     KeyStroke enter;
     char[] charArray;
+    ArrayList<String> entryTokens;
+    int lineNumber;
 
     public GamePanel() {
         this.setFocusable(true);
@@ -35,9 +37,9 @@ public class GamePanel extends JPanel implements Runnable{
             }
         }
         System.out.println(chemicalLength);
-        setPreferredSize(new Dimension(520,600));
-        grid = new Textbox[6];
-            for (int y=0; y<6; y++) {
+        setPreferredSize(new Dimension(520,10*100));
+        grid = new Textbox[10];
+            for (int y=0; y<10; y++) {
                 grid[y] = new Textbox(y);
                 add(grid[y]);
             }
@@ -52,28 +54,12 @@ public class GamePanel extends JPanel implements Runnable{
     }
 
     public void testLine(int line) {
-        ArrayList<String> entryTokens = new ArrayList<>();
-        String chemical = focusedTextbox.getText();
-        for (int i=0; i<chemical.length(); i++) {
-            char chr = chemical.charAt(i);
-            if (chr == '(') {
-                entryTokens.add(chemical.substring(i+1, chemical.indexOf(')', i)));
-                System.out.println(entryTokens);
-                i = chemical.indexOf(')', i)-1;
-                continue;
-            } else if (Character.isLowerCase(chr)) {
-                entryTokens.add(""+chemical.charAt(i-1)+chr);
-                System.out.println(entryTokens);
-            } else if (Character.isDigit(chr)) {
-                if (Character.isUpperCase(chemical.charAt(i-1))) {
-                    entryTokens.add(""+chemical.charAt(i-1));
-                    System.out.println(entryTokens);
-                }
-                entryTokens.add(""+chr);
-                System.out.println(entryTokens);
-            }
+        focusedTextbox.setText(focusedTextbox.getText().substring(0,focusedTextbox.getText().length()-2));
+        entryTokens = cm.dissect(focusedTextbox.getText());
+        if(!isValid(entryTokens)) {
+            System.out.println("INCORRECT ENTRY");
+            return;
         }
-        System.out.println(entryTokens);
         boolean isCorrect = true;
         Highlighter highlighter = focusedTextbox.getHighlighter();
         Highlighter.HighlightPainter greenHighlight = new DefaultHighlighter.DefaultHighlightPainter(Color.GREEN);
@@ -90,18 +76,66 @@ public class GamePanel extends JPanel implements Runnable{
                                 focusedTextbox.getText().indexOf(entryTokens.get(i))+entryTokens.get(i).length(),
                                 greenHighlight);
                     } catch (BadLocationException e) {
-                        e.printStackTrace();
+                        // e.printStackTrace();
                     }
                 }
             } catch (IndexOutOfBoundsException e) {
                 System.out.println("out of bounds");
             }
         }
+        grid[focusedY+1].requestFocus();
+        lineNumber++;
+    }
+
+    public void dissect(String str) {
+        entryTokens = new ArrayList<>();
+        String chemical = str;
+        for (int i=0; i<chemical.length(); i++) {
+            char chr = chemical.charAt(i); 
+            if (chr == '(') {
+                if (Character.isUpperCase(chemical.charAt(i-1))) {
+                    entryTokens.add(""+chemical.charAt(i-1));
+                    System.out.println(entryTokens);
+                }
+                if (i != 0 && !Character.isDigit(chemical.charAt(i-1))) {
+                    entryTokens.add("1");
+                    System.out.println(entryTokens);
+                }
+                entryTokens.add(chemical.substring(i+1, chemical.indexOf(')', i)));
+                System.out.println(entryTokens);
+                i = chemical.indexOf(')', i)-1;
+            } 
+            if (i != 0 && Character.isUpperCase(chr) && !Character.isDigit(chemical.charAt(i-1))) {
+                entryTokens.add("1");
+                System.out.println(entryTokens);
+            }
+            if (Character.isLowerCase(chr)) {
+                entryTokens.add(""+chemical.charAt(i-1)+chr);
+                System.out.println(entryTokens);
+            } else if (Character.isDigit(chr)) {
+                if (Character.isUpperCase(chemical.charAt(i-1))) {
+                    entryTokens.add(""+chemical.charAt(i-1));
+                    System.out.println(entryTokens);
+                }
+                entryTokens.add(""+chr);
+                System.out.println(entryTokens);
+            }
+        }
+        if (!Character.isDigit(chemical.charAt(chemical.length()-3))) {
+            entryTokens.add("1");
+            System.out.println(entryTokens);
+        }
+        System.out.println(entryTokens);
+    }
+
+    public boolean isValid(ArrayList<String> tokens) {
+        return cm.isValid(tokens);
     }
 
     @Override
     public void run() {
         while(thread != null) {
+            grid[lineNumber].requestFocus();
             for (Textbox textbox : grid) {
                 if (textbox.isFocusOwner()) {
                     focusedTextbox = textbox;
@@ -128,7 +162,6 @@ public class GamePanel extends JPanel implements Runnable{
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println("action performed");
-            grid[focusedY+1].requestFocus();
             testLine(focusedY);
         }
     }
