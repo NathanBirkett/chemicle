@@ -8,13 +8,19 @@ public class ChemicalMaps {
     int cationCharge, anionCharge;
     String cation, anion, chemical;
     ArrayList<String> chemicalTokens = new ArrayList<>();
+    ArrayList<String> editedTokens = new ArrayList<>();
     public ChemicalMaps() {
         ionMap = new HashMap<>();
-        ionMap.put(1, new String[]{"H","Li","Na","K","Rb","Cs","Fr"});
-        ionMap.put(2,new String[]{"Be","Mg","Ca","Sr","Ba","Ra"});
-        ionMap.put(-1, new String[]{"F","Cl","Br","I"});
-        ionMap.put(-2, new String[]{"O","S","Se","Te"});
-        ionMap.put(-3, new String[]{"N","P"});
+        ionMap.put(1, new String[]{"H","Li","Na","K","Rb","Cs","Fr","Cu","Ag","Au","Hg","Tl","(NH4)","(H3O)"});
+        ionMap.put(2, new String[]{"Be","Mg","Ca","Sr","Ba","Ra","Ti","V","Cr","Mn","Fe","Co","Ni","Pd","Pt","Cu","Zn","Cd","Hg","Sn","Pb","(Hg2)"});
+        ionMap.put(3, new String[]{"Sc","Y","La","Ac","Ti","V","Nb","Cr","Mn","Fe","Ru","Os","Co","Rh","Ir","Ni","Au","Al","Ga","In","Tl","Bi"});
+        ionMap.put(4, new String[]{"Ti","Zr","Hf","V","Mn","Tc","Re","Os","Ir","Pd","Pt","Sn","Pb"});
+        ionMap.put(5, new String[]{"V","Nb","Ta","Bi"});
+        ionMap.put(6, new String[]{"Cr","Mo","W","Tc","Re"});
+        ionMap.put(7, new String[]{"Mn","Tc","Re"});
+        ionMap.put(-1, new String[]{"F","Cl","Br","I","(C2H3O2)","(CN)","(HCO3)","(ClO)","(ClO2)","(ClO3)","(ClO4)","(MnO4)","(NO2)","(NO3)","(OH)","(SCN)","(HSO4)"});
+        ionMap.put(-2, new String[]{"O","S","Se","(CO3)","(C2O4)","(CrO4)","(Cr2O7)","(O2)","(SO3)","(SO4)","(S2O3)"});
+        ionMap.put(-3, new String[]{"N","P","(PO4)"});
 
         cationMap = new HashMap<>();
         cationMap.put("H", 1);
@@ -144,6 +150,7 @@ public class ChemicalMaps {
         generateAnion();
         chemical = (cation+anionCharge*-1+anion+cationCharge).replace("1","");
         chemical = (cationCharge == -anionCharge) ? chemical.replace(String.valueOf(cationCharge),"") : chemical;
+        // chemical = (cationCharge % -anionCharge == 0) ? chemical.replace(String.valueOf(-anionCharge), "").replace(String.valueOf(cationCharge), String.valueOf(cationCharge/-anionCharge)) : chemical;
         System.out.println(chemical);
         chemicalTokens = dissect(chemical);
         return chemical;
@@ -172,6 +179,8 @@ public class ChemicalMaps {
                 if (i != 0 && Character.isUpperCase(chemical.charAt(i-1))) {
                     tokens.add(""+chemical.charAt(i-1));
                     System.out.println(tokens);
+                } else if (i != 0 && Character.isUpperCase(chemical.charAt(i-2)) && Character.isLowerCase(chemical.charAt(i-1))) {
+                    tokens.add(""+chemical.charAt(i-2)+chemical.charAt(i-1));
                 }
                 if (i != 0 && !Character.isDigit(chemical.charAt(i-1))) {
                     tokens.add("1");
@@ -182,16 +191,25 @@ public class ChemicalMaps {
                 i = chemical.indexOf(')', i)-1;
             } 
             if (i != 0 && Character.isUpperCase(chr) && !Character.isDigit(chemical.charAt(i-1))) {
+                if (i != 0 && Character.isUpperCase(chemical.charAt(i-1))) {
+                    tokens.add(""+chemical.charAt(i-1));
+                    System.out.println(tokens);
+                } else if (i != 0 && Character.isUpperCase(chemical.charAt(i-2))) {
+                    tokens.add(""+chemical.charAt(i-2)+chemical.charAt(i-1));
+                }
                 tokens.add("1");
                 System.out.println(tokens);
             }
-            if (Character.isLowerCase(chr)) {
-                tokens.add(""+chemical.charAt(i-1)+chr);
-                System.out.println(tokens);
-            } else if (Character.isDigit(chr)) {
+            // if (Character.isLowerCase(chr)) {
+            //     tokens.add(""+chemical.charAt(i-1)+chr);
+            //     System.out.println(tokens);
+            // } else if (Character.isDigit(chr)) {
+            if (Character.isDigit(chr)) {
                 if (Character.isUpperCase(chemical.charAt(i-1))) {
                     tokens.add(""+chemical.charAt(i-1));
                     System.out.println(tokens);
+                } else if (i != 0 && Character.isUpperCase(chemical.charAt(i-2)) && Character.isLowerCase(chemical.charAt(i-1))) {
+                    tokens.add(""+chemical.charAt(i-2)+chemical.charAt(i-1));
                 }
                 tokens.add(""+chr);
                 System.out.println(tokens);
@@ -200,6 +218,8 @@ public class ChemicalMaps {
         if (Character.isUpperCase(chemical.charAt(chemical.length()-1))) {
             tokens.add(""+chemical.charAt(chemical.length()-1));
             System.out.println(tokens);
+        } else if (Character.isUpperCase(chemical.charAt(chemical.length()-2))) {
+            tokens.add(""+chemical.charAt(chemical.length()-2)+chemical.charAt(chemical.length()-1));
         }
         if (!Character.isDigit(chemical.charAt(chemical.length()-1))) {
             tokens.add("1");
@@ -210,7 +230,7 @@ public class ChemicalMaps {
     }
 
     public boolean isValid(ArrayList<String> tokens) {
-        ArrayList<String> editedTokens = new ArrayList<>();
+        editedTokens = new ArrayList<>();
         for (int i=0; i<tokens.size(); i++) {
             int upperCase = 0;
             int number = 0;
@@ -228,11 +248,9 @@ public class ChemicalMaps {
         }
         System.out.println(editedTokens);
         try {
-            System.out.println(cationMap.get(editedTokens.get(0)));
-            if (cationMap.get(editedTokens.get(0)) 
-            * Integer.parseInt(editedTokens.get(1)) 
-            == -1 * anionMap.get(editedTokens.get(2)) 
-            * Integer.parseInt(editedTokens.get(3))) {
+            int negativeCharge = anionMap.get(editedTokens.get(2)) * Integer.parseInt(editedTokens.get(3));
+            //multiply charge of anion by moles of anion, which gives negative charge. Divide that by moles of cation, which should give the charge of cation if its valid.
+            if (Arrays.asList(ionMap.get(-negativeCharge / Integer.parseInt(editedTokens.get(1)))).contains(editedTokens.get(0))) {
                 return true;
             } else {
                 return false;

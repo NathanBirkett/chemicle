@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 
 public class GamePanel extends JPanel implements Runnable{
     Thread thread;
@@ -54,29 +55,57 @@ public class GamePanel extends JPanel implements Runnable{
     }
 
     public void testLine(int line) {
-        focusedTextbox.setText(focusedTextbox.getText().substring(0,focusedTextbox.getText().length()-2));
-        entryTokens = cm.dissect(focusedTextbox.getText());
+        focusedTextbox.setText(focusedTextbox.getText().replace("\n", "").replace("\r", ""));
+        try {
+            entryTokens = cm.dissect(focusedTextbox.getText());
+        } catch (Exception e) {
+            System.out.println("INVALID ENTRY");
+            return;
+        }
         if(!isValid(entryTokens)) {
             System.out.println("INCORRECT ENTRY");
             return;
         }
         boolean isCorrect = true;
         Highlighter highlighter = focusedTextbox.getHighlighter();
+        Highlighter highlighter2 = focusedTextbox.getHighlighter();
         Highlighter.HighlightPainter greenHighlight = new DefaultHighlighter.DefaultHighlightPainter(Color.GREEN);
         Highlighter.HighlightPainter yellowHighlight = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
         Highlighter.HighlightPainter grayHighlight = new DefaultHighlighter.DefaultHighlightPainter(Color.GRAY);
         System.out.println(cm.chemicalTokens);
         for (int i=0; i<entryTokens.size(); i++) {
             try {
-                System.out.println(entryTokens.get(i));
-                System.out.println(cm.chemicalTokens.get(i));
-                if (Objects.equals(entryTokens.get(i), cm.chemicalTokens.get(i))) {
+                String token = entryTokens.get(i);
+                String target = cm.chemicalTokens.get(i);
+                System.out.println(token);
+                System.out.println(target);
+                if (Objects.equals(token, target) && !Objects.equals(token, "1")) {
+                    System.out.println("token is target");
                     try {
-                        highlighter.addHighlight(focusedTextbox.getText().indexOf(entryTokens.get(i)),
-                                focusedTextbox.getText().indexOf(entryTokens.get(i))+entryTokens.get(i).length(),
-                                greenHighlight);
+                        int begin = focusedTextbox.getText().indexOf(token);
+                        int end = focusedTextbox.getText().indexOf(token)+token.length();
+                        System.out.println(""+focusedTextbox.getText().indexOf(token)+", "+(focusedTextbox.getText().indexOf(token)+token.length()));
+                        // highlighter.addHighlight(focusedTextbox.getText().indexOf(token),
+                        //         focusedTextbox.getText().indexOf(token)+token.length(),
+                        //         greenHighlight);
+                        highlighter2.addHighlight(begin, end, greenHighlight);
                     } catch (BadLocationException e) {
-                        // e.printStackTrace();
+                        e.printStackTrace();
+                    }
+                }
+                if (!token.matches("-?\\d+(\\.\\d+)?")) {
+                    System.out.println("isn't number");
+                    // if ((i == 0 && Arrays.asList(cm.ionMap.get(cm.cationCharge)).contains(cm.editedTokens.get(i))) || (i == 2 && Arrays.asList(cm.ionMap.get(cm.anionCharge)).contains(cm.editedTokens.get(i)))) {
+                    // System.out.println(cm.anionMap.get(entryTokens.get(2)) * Integer.parseInt(entryTokens.get(3)) / Integer.parseInt(entryTokens.get(1)));
+                        if ((-cm.anionMap.get(cm.editedTokens.get(2)) * Integer.parseInt(entryTokens.get(3)) / Integer.parseInt(entryTokens.get(1)) == cm.cationCharge)
+                    || (cm.cationMap.get(cm.editedTokens.get(0)) * Integer.parseInt(entryTokens.get(1)) / Integer.parseInt(entryTokens.get(3)) == -cm.anionCharge)) {
+                        try {
+                            highlighter.addHighlight(focusedTextbox.getText().indexOf(token),
+                                    focusedTextbox.getText().indexOf(token)+token.length(),
+                                    yellowHighlight);
+                        } catch (BadLocationException e) {
+                            // e.printStackTrace();
+                        }
                     }
                 }
             } catch (IndexOutOfBoundsException e) {
